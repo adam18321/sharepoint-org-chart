@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SharePoint Document Library Org Chart</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Aptos', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #fafbfc;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border: 1px solid #e5e7eb;
+        }
+
+        .header h1 {
+            color: #1f2937;
+            margin-bottom: 10px;
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .control-btn {
+            background: #374151;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+
+        .control-btn:hover {
+            background: #111827;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(17, 24, 39, 0.15);
+        }
+
+        .control-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .search-box {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 13px;
+            width: 200px;
+            transition: border-color 0.2s ease;
+            background: white;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #6b7280;
+            box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.1);
+        }
+
+        .org-chart {
+            display: flex;
+            justify-content: center;
+            padding: 15px;
+            overflow-x: auto;
+            min-height: 400px;
+        }
+
+        .tree {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .node {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 8px;
+            animation: fadeInScale 0.6s ease-out;
+        }
+
+        .node.hidden {
+            display: none;
+        }
+
+        .folder-card, .file-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px 16px 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s ease, height 0.3s ease;
+            min-width: 180px;
+            max-width: 260px;
+            width: auto;
+            text-align: center;
+            position: relative;
+            min-height: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .folder-card {
+            border-left: 4px solid #6b7280;
+        }
+
+        .folder-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-color: #6b7280;
+        }
+
+        .file-card {
+            border-left: 4px solid #9ca3af;
+        }
+
+        .file-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-color: #9ca3af;
+        }
+
+        .folder-card.expanded {
+            border-color: #10b981;
+            border-left-color: #10b981;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
+        }
+
+        .card-icon {
+            font-size: 1.8em;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .card-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: #1f2937;
+        }
+
+        .card-info {
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .card-description {
+            font-size: 10px;
+            color: #9ca3af;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #f3f4f6;
+            font-style: italic;
+            line-height: 1.4;
+            text-align: center;
+            word-wrap: break-word;
+            hyphens: auto;
+            max-width: 220px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .expand-btn {
+            position: absolute;
+            bottom: -10px;
+            right: -10px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+            z-index: 10;
+        }
+
+        .expand-btn:hover {
+            background: #059669;
+            transform: scale(1.05);
+        }
+
+        .expand-btn.expanded {
+            background: #ef4444;
+            transform: rotate(45deg);
+        }
+
+        .expand-btn.loading {
+            background: #6b7280;
+            animation: spin 1s linear infinite;
+        }
+
+        .children {
+            display: flex;
+            flex-direction: row;
+            gap: 15px;
+            margin-top: 30px;
+            position: relative;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .children::before {
+            content: '';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1px;
+            height: 15px;
+            background: #d1d5db;
+        }
+
+        .children .node::before {
+            content: '';
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1px;
+            height: 25px;
+            background: #d1d5db;
+        }
+
+        .children .node::after {
+            content: '';
+            position: absolute;
+            top: -25px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #d1d5db;
+        }
+
+        .children .node:first-child::after {
+            left: 50%;
+        }
+
+        .children .node:last-child::after {
+            right: 50%;
+        }
+
+        .breadcrumb {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border: 1px solid #e5e7eb;
+            font-size: 13px;
+        }
+
+        .breadcrumb-item {
+            display: inline;
+            color: #6b7280;
+            cursor: pointer;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .breadcrumb-item:hover {
+            color: #374151;
+        }
+
+        .breadcrumb-separator {
+            margin: 0 6px;
+            color: #9ca3af;
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border: 1px solid #e5e7eb;
+            min-width: 100px;
+        }
+
+        .stat-number {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2937;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .loading-container, .error-container {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
+
+        .error-container {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .error-container button {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s ease;
+        }
+
+        .error-container button:hover {
+            background: #dc2626;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #6b7280;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        .context-menu {
+            position: absolute;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e5e7eb;
+            padding: 6px 0;
+            min-width: 140px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .context-menu-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #374151;
+        }
+
+        .context-menu-item:hover {
+            background: #f9fafb;
+        }
+
+        .notification {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            background: #10b981;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: opacity 0.3s ease;
+            font-size: 13px;
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .children {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .search-box {
+                width: 100%;
+                max-width: 250px;
+            }
+            
+            .stats {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .folder-card, .file-card {
+                max-width: 100%;
+                min-width: 200px;
+            }
+            
+            .card-description {
+                font-size: 11px;
+                line-height: 1.5;
+            }
+
+            .header h1 {
+                font-size: 1.6em;
+            }
+
+            .org-chart {
+                padding: 10px 5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .folder-card, .file-card {
+                min-width: 180px;
+                max-width: 100%;
+            }
+
+            body {
+                padding: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="documentLibraryChart">
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Initializing SharePoint document library chart...</p>
+        </div>
+    </div>
+
+    <script>
+        // SharePoint Document Library Org Chart with API Integration
+        class SharePointLibraryChart {
+            constructor(containerId, libraryName = 'Documents') {
+                this.containerId = containerId;
+                this.libraryName = libraryName;
+                
+                // Check if we're in SharePoint context
+                if (typeof _spPageContextInfo !== 'undefined') {
+                    this.siteUrl = _spPageContextInfo.webAbsoluteUrl;
+                    this.isSharePointContext = true;
+                } else {
+                    // Fallback for testing outside SharePoint
+                    this.siteUrl = window.location.origin;
+                    this.isSharePointContext = false;
+                    console.warn('Not in SharePoint context - using sample data');
+                }
+                
+                this.apiEndpoint = `${this.siteUrl}/_api/web/lists/getbytitle('${libraryName}')`;
+                this.folderStructure = null;
+                this.expandedNodes = new Set();
+                this.selectedNode = null;
+            }
+
+            async init() {
+                try {
+                    this.showLoading();
+                    
+                    if (this.isSharePointContext) {
+                        const structure = await this.getFolderStructure();
+                        this.folderStructure = structure;
+                    } else {
+                        // Use sample data for demo
+                        this.folderStructure = this.getSampleData();
+                        await this.delay(1000); // Simulate API delay
+                    }
+                    
+                    this.renderChart();
+                    this.updateStats();
+                } catch (error) {
+                    console.error('Error initializing chart:', error);
+                    this.showError(error.message || 'Failed to load document library structure');
+                }
+            }
+
+            async getFolderStructure(folderPath = '') {
+                try {
+                    const folderUrl = folderPath ? 
+                        `${this.apiEndpoint}/rootfolder/folders('${folderPath}')` : 
+                        `${this.apiEndpoint}/rootfolder`;
+
+                    // Get folder details with description
+                    const folderResponse = await this.makeAPICall(`${folderUrl}?$expand=Folders,Files,Properties&$select=Name,ServerRelativeUrl,TimeLastModified,ItemCount,Properties`);
+                    
+                    // Get files in the folder
+                    const filesResponse = await this.makeAPICall(`${folderUrl}/Files?$select=Name,Length,TimeLastModified,ServerRelativeUrl`);
+                    
+                    // Get subfolders with properties, filtering for numbered folders and excluding default SharePoint folders
+                    const foldersResponse = await this.makeAPICall(`${folderUrl}/Folders?$expand=Properties&$select=Name,ServerRelativeUrl,TimeLastModified,ItemCount,Properties&$filter=Name ne 'Forms' and Name ne 'Item' and Name ne 'AllItems' and Name ne 'DispForm' and Name ne 'EditForm' and Name ne 'NewForm'`);
+
+                    return this.buildFolderStructure(folderResponse, filesResponse.value, foldersResponse.value);
+                } catch (error) {
+                    console.error('API Error:', error);
+                    throw new Error(`Failed to load folder structure: ${error.message}`);
+                }
+            }
+
+            async makeAPICall(url) {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json;odata=verbose',
+                        'Content-Type': 'application/json;odata=verbose',
+                        'X-RequestDigest': document.getElementById('__REQUESTDIGEST')?.value || ''
+                    },
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                return data.d || data;
+            }
+
+            buildFolderStructure(folderData, files, subfolders) {
+                const structure = {
+                    name: folderData.Name || this.libraryName,
+                    type: 'folder',
+                    id: folderData.ServerRelativeUrl || 'root',
+                    path: folderData.ServerRelativeUrl || '',
+                    modified: this.formatDate(folderData.TimeLastModified),
+                    description: this.extractDescription(folderData),
+                    size: 0,
+                    children: []
+                };
+
+                // Add files (all files are included)
+                files.forEach(file => {
+                    structure.children.push({
+                        name: file.Name,
+                        type: 'file',
+                        id: file.ServerRelativeUrl,
+                        path: file.ServerRelativeUrl,
+                        size: this.bytesToMB(file.Length),
+                        modified: this.formatDate(file.TimeLastModified),
+                        description: this.getFileDescription(file.Name)
+                    });
+                    structure.size += this.bytesToMB(file.Length);
+                });
+
+                // Filter and add subfolders - only show folders with two-digit numbering convention
+                const filteredFolders = subfolders.filter(folder => this.isNumberedFolder(folder.Name));
+                
+                filteredFolders.forEach(folder => {
+                    structure.children.push({
+                        name: folder.Name,
+                        type: 'folder',
+                        id: folder.ServerRelativeUrl,
+                        path: folder.ServerRelativeUrl,
+                        modified: this.formatDate(folder.TimeLastModified),
+                        description: this.extractDescription(folder),
+                        size: 0,
+                        itemCount: folder.ItemCount,
+                        children: null // Will be loaded when expanded
+                    });
+                });
+
+                return structure;
+            }
+
+            // Check if folder follows the two-digit numbering convention
+            isNumberedFolder(folderName) {
+                // Pattern: starts with exactly two digits followed by underscore
+                const pattern = /^\d{2}_/;
+                return pattern.test(folderName);
+            }
+
+            extractDescription(folderData) {
+                // Try to get description from SharePoint folder properties
+                if (folderData.Properties && folderData.Properties.__metadata) {
+                    // Look for common description fields
+                    const description = folderData.Properties.vti_x005f_description || 
+                                      folderData.Properties.Description || 
+                                      folderData.Properties.Comments;
+                    if (description) return description;
+                }
+                
+                // Fallback to default descriptions based on folder name
+                return this.getDefaultFolderDescription(folderData.Name);
+            }
+
+            getDefaultFolderDescription(folderName) {
+                // Extract the name part after the numbering prefix for description matching
+                const cleanName = this.isNumberedFolder(folderName) ? folderName.substring(3) : folderName;
+                const descriptions = {
+                    'projects': 'Active and completed project files, documentation, and deliverables',
+                    'hr': 'Human resources documents, policies, and employee information',
+                    'human resources': 'Human resources documents, policies, and employee information',
+                    'hr documents': 'Human resources documents, policies, and employee information',
+                    'marketing': 'Marketing materials, campaigns, and brand assets',
+                    'finance': 'Financial documents, budgets, and accounting records',
+                    'legal': 'Legal documents, contracts, and compliance materials',
+                    'it': 'IT documentation, procedures, and technical resources',
+                    'information technology': 'IT documentation, procedures, and technical resources',
+                    'sales': 'Sales materials, presentations, and customer information',
+                    'operations': 'Operational procedures, workflows, and process documentation',
+                    'training': 'Training materials, courses, and educational resources',
+                    'policies': 'Company policies, procedures, and guidelines',
+                    'forms': 'Standard forms and templates for various processes',
+                    'templates': 'Document templates and standardized formats',
+                    'archive': 'Archived documents and historical records',
+                    'shared': 'Shared documents and collaborative materials',
+                    'public': 'Public documents and general information',
+                    'reports': 'Reports, analytics, and performance data',
+                    'meetings': 'Meeting minutes, agendas, and presentation materials',
+                    'contracts': 'Contracts, agreements, and legal documents',
+                    'invoices': 'Invoices, receipts, and billing documents',
+                    'proposals': 'Project proposals and business development materials',
+                    'presentations': 'Presentation files and supporting materials',
+                    'images': 'Images, photos, and visual assets',
+                    'videos': 'Video files and multimedia content',
+                    'audio': 'Audio files and sound recordings',
+                    'documents': 'General document storage and file repository',
+                    'admin': 'Administrative documents and management files',
+                    'accounting': 'Accounting re
