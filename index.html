@@ -3,177 +3,1046 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SharePoint Org Chart - Debug</title>
+    <title>SharePoint Document Library Org Chart</title>
     <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #f5f5f5;
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Aptos', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #fafbfc;
+            min-height: 100vh;
             padding: 20px;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+
         .header {
             text-align: center;
             margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border: 1px solid #e5e7eb;
         }
-        .loading {
+
+        .header h1 {
+            color: #1f2937;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 600;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .control-btn {
+            background: #374151;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .control-btn:hover {
+            background: #111827;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(17, 24, 39, 0.15);
+        }
+
+        .control-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .search-box {
+            padding: 10px 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            width: 250px;
+            transition: border-color 0.2s ease;
+            background: white;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #6b7280;
+            box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.1);
+        }
+
+        .org-chart {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: auto;
+            min-height: 400px;
+        }
+
+        .tree {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .node {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px;
+            animation: fadeInScale 0.6s ease-out;
+        }
+
+        .node.hidden {
+            display: none;
+        }
+
+        .folder-card, .file-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px 20px 20px 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s ease, height 0.3s ease;
+            min-width: 220px;
+            max-width: 300px;
+            width: auto;
             text-align: center;
-            padding: 40px;
-            color: #666;
+            position: relative;
+            min-height: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
+
+        .folder-card {
+            border-left: 4px solid #6b7280;
+        }
+
+        .folder-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-color: #6b7280;
+        }
+
+        .file-card {
+            border-left: 4px solid #9ca3af;
+        }
+
+        .file-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-color: #9ca3af;
+        }
+
+        .folder-card.expanded {
+            border-color: #10b981;
+            border-left-color: #10b981;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
+        }
+
+        .card-icon {
+            font-size: 2em;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .card-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #1f2937;
+        }
+
+        .card-info {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .card-description {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #f3f4f6;
+            font-style: italic;
+            line-height: 1.4;
+            text-align: center;
+            word-wrap: break-word;
+            hyphens: auto;
+            max-width: 260px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .expand-btn {
+            position: absolute;
+            bottom: -12px;
+            right: -12px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+            z-index: 10;
+        }
+
+        .expand-btn:hover {
+            background: #059669;
+            transform: scale(1.05);
+        }
+
+        .expand-btn.expanded {
+            background: #ef4444;
+            transform: rotate(45deg);
+        }
+
+        .expand-btn.loading {
+            background: #6b7280;
+            animation: spin 1s linear infinite;
+        }
+
+        .children {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            margin-top: 40px;
+            position: relative;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .children::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1px;
+            height: 20px;
+            background: #d1d5db;
+        }
+
+        .children .node::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1px;
+            height: 30px;
+            background: #d1d5db;
+        }
+
+        .children .node::after {
+            content: '';
+            position: absolute;
+            top: -30px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #d1d5db;
+        }
+
+        .children .node:first-child::after {
+            left: 50%;
+        }
+
+        .children .node:last-child::after {
+            right: 50%;
+        }
+
+        .breadcrumb {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+
+        .breadcrumb-item {
+            display: inline;
+            color: #6b7280;
+            cursor: pointer;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .breadcrumb-item:hover {
+            color: #374151;
+        }
+
+        .breadcrumb-separator {
+            margin: 0 8px;
+            color: #9ca3af;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border: 1px solid #e5e7eb;
+            min-width: 120px;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+
+        .loading-container, .error-container {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .error-container {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .error-container button {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background 0.2s ease;
+        }
+
+        .error-container button:hover {
+            background: #dc2626;
+        }
+
         .spinner {
             width: 40px;
             height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #0078d4;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #6b7280;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 20px;
         }
+
+        .context-menu {
+            position: absolute;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e5e7eb;
+            padding: 8px 0;
+            min-width: 150px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .context-menu-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #374151;
+        }
+
+        .context-menu-item:hover {
+            background: #f9fafb;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: #10b981;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: opacity 0.3s ease;
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .debug-info {
-            background: #f0f8ff;
-            padding: 15px;
-            margin: 20px 0;
-            border-left: 4px solid #0078d4;
-            font-family: monospace;
+
+        @media (max-width: 768px) {
+            .children {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .search-box {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .stats {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .folder-card, .file-card {
+                max-width: 100%;
+                min-width: 280px;
+            }
+            
+            .card-description {
+                font-size: 12px;
+                line-height: 1.5;
+            }
         }
-        .folder-card {
-            background: #e8f4f8;
-            border: 2px solid #0078d4;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px;
-            display: inline-block;
-            min-width: 200px;
-            text-align: center;
-        }
-        .file-card {
-            background: #fff2e8;
-            border: 2px solid #ff8c00;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px;
-            display: inline-block;
-            min-width: 200px;
-            text-align: center;
-        }
-        .controls {
-            text-align: center;
-            margin: 20px 0;
-        }
-        .btn {
-            background: #0078d4;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            margin: 5px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .btn:hover {
-            background: #106ebe;
+
+        @media (max-width: 480px) {
+            .folder-card, .file-card {
+                min-width: 250px;
+                max-width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📁 SharePoint Document Library</h1>
-            <p>Debug Version - Fast Loading</p>
-        </div>
-
-        <div class="debug-info" id="debugInfo">
-            Status: Initializing...
-        </div>
-
-        <div class="controls">
-            <button class="btn" onclick="testChart()">🔄 Test Load</button>
-            <button class="btn" onclick="showDebug()">🐛 Show Debug</button>
-        </div>
-
-        <div id="chartArea">
-            <div class="loading">
-                <div class="spinner"></div>
-                <p>Loading chart...</p>
-            </div>
+    <div id="documentLibraryChart">
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Initializing SharePoint document library chart...</p>
         </div>
     </div>
 
     <script>
-        // Debug logging
-        function log(message) {
-            console.log(message);
-            const debugInfo = document.getElementById('debugInfo');
-            debugInfo.innerHTML += '<br>' + new Date().toLocaleTimeString() + ': ' + message;
-        }
+        // SharePoint Document Library Org Chart with API Integration
+        class SharePointLibraryChart {
+            constructor(containerId, libraryName = 'Documents') {
+                this.containerId = containerId;
+                this.libraryName = libraryName;
+                
+                // When embedded in iframe, we'll use sample data
+                // In actual SharePoint context, this would connect to real APIs
+                this.isSharePointContext = false;
+                this.siteUrl = window.location.origin;
+                
+                this.folderStructure = null;
+                this.expandedNodes = new Set();
+                this.selectedNode = null;
+                
+                console.log('Chart initialized for library:', libraryName);
+            }
 
-        // Simple test data
-        const testData = [
-            { name: "01_Projects", type: "folder", description: "Project files and documentation" },
-            { name: "02_HR Documents", type: "folder", description: "Human resources materials" },
-            { name: "03_Marketing", type: "folder", description: "Marketing campaigns and assets" },
-            { name: "04_Finance", type: "folder", description: "Financial documents and reports" }
-        ];
+            async init() {
+                try {
+                    this.showLoading();
+                    
+                    // Use sample data for GitHub Pages demo
+                    this.folderStructure = this.getSampleData();
+                    await this.delay(1500); // Simulate API delay
+                    
+                    this.renderChart();
+                    this.updateStats();
+                } catch (error) {
+                    console.error('Error initializing chart:', error);
+                    this.showError(error.message || 'Failed to load document library structure');
+                }
+            }
 
-        function renderSimpleChart() {
-            log('Starting chart render...');
-            
-            const chartArea = document.getElementById('chartArea');
-            let html = '<div style="text-align: center;">';
-            
-            testData.forEach(item => {
-                html += `
-                    <div class="${item.type}-card">
-                        <h3>📁 ${item.name}</h3>
-                        <p>${item.description}</p>
-                        <small>Modified: Today</small>
+            getSampleData() {
+                // Sample data with two-digit numbering convention
+                return {
+                    name: this.libraryName,
+                    type: "folder",
+                    id: "root",
+                    size: 0,
+                    modified: "2025-06-12",
+                    description: "Main document library containing all organizational files and resources",
+                    children: [
+                        {
+                            name: "01_Projects",
+                            type: "folder",
+                            id: "01-projects",
+                            size: 156.7,
+                            modified: "2025-06-10",
+                            description: "Active and completed project files, documentation, and deliverables",
+                            children: [
+                                {
+                                    name: "01_Project Alpha",
+                                    type: "folder",
+                                    id: "01-project-alpha",
+                                    size: 89.2,
+                                    modified: "2025-06-08",
+                                    description: "Alpha project development files, requirements, and timeline documents",
+                                    children: [
+                                        { name: "Requirements.docx", type: "file", size: 2.1, modified: "2025-06-05", description: "Microsoft Word document" },
+                                        { name: "Timeline.xlsx", type: "file", size: 1.8, modified: "2025-06-07", description: "Microsoft Excel spreadsheet" },
+                                        { name: "Budget.pdf", type: "file", size: 3.2, modified: "2025-06-08", description: "Portable Document Format file" }
+                                    ]
+                                },
+                                {
+                                    name: "02_Project Beta",
+                                    type: "folder",
+                                    id: "02-project-beta",
+                                    size: 67.5,
+                                    modified: "2025-06-09",
+                                    description: "Beta project design files and user story documentation",
+                                    children: [
+                                        { name: "Design_Mockups.zip", type: "file", size: 45.2, modified: "2025-06-09", description: "Compressed archive file" },
+                                        { name: "User_Stories.docx", type: "file", size: 2.8, modified: "2025-06-06", description: "Microsoft Word document" }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            name: "02_HR Documents",
+                            type: "folder",
+                            id: "02-hr-docs",
+                            size: 234.1,
+                            modified: "2025-06-11",
+                            description: "Human resources documents, policies, and employee information",
+                            children: [
+                                {
+                                    name: "01_Policies",
+                                    type: "folder",
+                                    id: "01-policies",
+                                    size: 12.4,
+                                    modified: "2025-06-01",
+                                    description: "Company policies, procedures, and guidelines",
+                                    children: [
+                                        { name: "Employee_Handbook.pdf", type: "file", size: 5.6, modified: "2025-06-01", description: "Portable Document Format file" },
+                                        { name: "Code_of_Conduct.pdf", type: "file", size: 3.2, modified: "2025-05-28", description: "Portable Document Format file" },
+                                        { name: "Remote_Work_Policy.docx", type: "file", size: 3.6, modified: "2025-06-01", description: "Microsoft Word document" }
+                                    ]
+                                },
+                                {
+                                    name: "02_Forms",
+                                    type: "folder",
+                                    id: "02-forms",
+                                    size: 8.7,
+                                    modified: "2025-06-11",
+                                    description: "Standard forms and templates for various HR processes",
+                                    children: [
+                                        { name: "Leave_Request.docx", type: "file", size: 1.2, modified: "2025-06-11", description: "Microsoft Word document" },
+                                        { name: "Expense_Report.xlsx", type: "file", size: 2.1, modified: "2025-06-10", description: "Microsoft Excel spreadsheet" },
+                                        { name: "Performance_Review.pdf", type: "file", size: 5.4, modified: "2025-06-05", description: "Portable Document Format file" }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            name: "03_Marketing",
+                            type: "folder",
+                            id: "03-marketing",
+                            size: 445.8,
+                            modified: "2025-06-12",
+                            description: "Marketing materials, campaigns, and brand assets",
+                            children: [
+                                {
+                                    name: "01_Campaigns",
+                                    type: "folder",
+                                    id: "01-campaigns",
+                                    size: 234.5,
+                                    modified: "2025-06-12",
+                                    description: "Marketing campaign materials and social media assets",
+                                    children: [
+                                        { name: "Q2_Campaign.pptx", type: "file", size: 12.8, modified: "2025-06-12", description: "Microsoft PowerPoint presentation" },
+                                        { name: "Social_Media_Assets.zip", type: "file", size: 156.7, modified: "2025-06-11", description: "Compressed archive file" },
+                                        { name: "Email_Templates.html", type: "file", size: 2.3, modified: "2025-06-10", description: "HTML web page" }
+                                    ]
+                                },
+                                {
+                                    name: "02_Brand Assets",
+                                    type: "folder",
+                                    id: "02-brand-assets",
+                                    size: 211.3,
+                                    modified: "2025-06-08",
+                                    description: "Brand guidelines, logos, and visual identity materials",
+                                    children: [
+                                        { name: "Logo_Package.zip", type: "file", size: 78.9, modified: "2025-06-08", description: "Compressed archive file" },
+                                        { name: "Brand_Guidelines.pdf", type: "file", size: 15.4, modified: "2025-06-07", description: "Portable Document Format file" },
+                                        { name: "Color_Palette.ai", type: "file", size: 23.6, modified: "2025-06-08", description: "Adobe Illustrator file" }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            name: "04_Finance",
+                            type: "folder",
+                            id: "04-finance",
+                            size: 89.3,
+                            modified: "2025-06-11",
+                            description: "Financial documents, budgets, and accounting records",
+                            children: [
+                                { name: "Q1_Budget.xlsx", type: "file", size: 4.2, modified: "2025-03-15", description: "Microsoft Excel spreadsheet" },
+                                { name: "Expense_Reports.pdf", type: "file", size: 12.1, modified: "2025-06-11", description: "Portable Document Format file" }
+                            ]
+                        },
+                        {
+                            name: "05_Legal",
+                            type: "folder",
+                            id: "05-legal",
+                            size: 45.7,
+                            modified: "2025-06-09",
+                            description: "Legal documents, contracts, and compliance materials",
+                            children: [
+                                { name: "Master_Service_Agreement.pdf", type: "file", size: 8.9, modified: "2025-06-09", description: "Portable Document Format file" },
+                                { name: "Privacy_Policy.docx", type: "file", size: 3.4, modified: "2025-05-20", description: "Microsoft Word document" }
+                            ]
+                        },
+                        {
+                            name: "06_Sales",
+                            type: "folder",
+                            id: "06-sales",
+                            size: 78.4,
+                            modified: "2025-06-12",
+                            description: "Sales materials, presentations, and customer information",
+                            children: [
+                                { name: "Sales_Presentation.pptx", type: "file", size: 25.6, modified: "2025-06-12", description: "Microsoft PowerPoint presentation" },
+                                { name: "Customer_Database.xlsx", type: "file", size: 18.3, modified: "2025-06-10", description: "Microsoft Excel spreadsheet" }
+                            ]
+                        }
+                    ]
+                };
+            }
+
+            // Check if folder follows the two-digit numbering convention
+            isNumberedFolder(folderName) {
+                const pattern = /^\d{2}_/;
+                return pattern.test(folderName);
+            }
+
+            formatDate(dateString) {
+                if (!dateString) return 'Unknown';
+                return new Date(dateString).toLocaleDateString();
+            }
+
+            bytesToMB(bytes) {
+                return parseFloat((bytes / (1024 * 1024)).toFixed(2));
+            }
+
+            getFileIcon(filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                const iconMap = {
+                    'pdf': '📄', 'doc': '📝', 'docx': '📝', 'xls': '📊', 'xlsx': '📊',
+                    'ppt': '📋', 'pptx': '📋', 'zip': '🗜️', 'rar': '🗜️',
+                    'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
+                    'mp4': '🎥', 'avi': '🎥', 'mov': '🎥', 'mp3': '🎵', 'wav': '🎵',
+                    'html': '🌐', 'htm': '🌐', 'ai': '🎨', 'psd': '🎨'
+                };
+                return iconMap[ext] || '📄';
+            }
+
+            showLoading() {
+                const container = document.getElementById(this.containerId);
+                container.innerHTML = `
+                    <div class="loading-container">
+                        <div class="spinner"></div>
+                        <p>Loading ${this.libraryName} structure...</p>
                     </div>
                 `;
-            });
-            
-            html += '</div>';
-            chartArea.innerHTML = html;
-            
-            log('Chart rendered successfully!');
+            }
+
+            showError(message) {
+                const container = document.getElementById(this.containerId);
+                container.innerHTML = `
+                    <div class="error-container">
+                        <div class="error-icon">⚠️</div>
+                        <h3>Error Loading Library</h3>
+                        <p>${message}</p>
+                        <button onclick="chart.init()">Retry</button>
+                    </div>
+                `;
+            }
+
+            renderChart() {
+                const container = document.getElementById(this.containerId);
+                container.innerHTML = `
+                    <div class="header">
+                        <h1>📁 ${this.libraryName}</h1>
+                        <p>Interactive folder structure visualization</p>
+                        <div class="controls">
+                            <button class="control-btn" onclick="chart.expandAll()">📂 Expand All</button>
+                            <button class="control-btn" onclick="chart.collapseAll()">📁 Collapse All</button>
+                            <button class="control-btn" onclick="chart.refresh()">🔄 Refresh</button>
+                            <input type="text" class="search-box" placeholder="🔍 Search folders and files..." onkeyup="chart.search(this.value)">
+                        </div>
+                    </div>
+                    
+                    <div class="breadcrumb" id="breadcrumb">
+                        <a href="#" class="breadcrumb-item" onclick="chart.navigateToRoot()">📁 ${this.libraryName}</a>
+                    </div>
+                    
+                    <div class="stats">
+                        <div class="stat-card">
+                            <span class="stat-number" id="totalFolders">0</span>
+                            <div class="stat-label">Folders</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number" id="totalFiles">0</span>
+                            <div class="stat-label">Files</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number" id="totalSize">0</span>
+                            <div class="stat-label">Total Size (MB)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="org-chart">
+                        <div id="orgTree" class="tree">
+                            ${this.renderNodes(this.folderStructure.children || [])}
+                        </div>
+                    </div>
+                    
+                    <div class="context-menu" id="contextMenu">
+                        <div class="context-menu-item" onclick="chart.openItem()">📂 Open</div>
+                        <div class="context-menu-item" onclick="chart.copyLink()">🔗 Copy Link</div>
+                        <div class="context-menu-item" onclick="chart.viewProperties()">ℹ️ Properties</div>
+                    </div>
+                `;
+                
+                this.attachEventListeners();
+            }
+
+            renderNodes(items) {
+                return items.map(item => this.renderNode(item)).join('');
+            }
+
+            renderNode(item) {
+                if (!item) return '';
+
+                const icon = item.type === 'folder' ? '📁' : this.getFileIcon(item.name);
+                const sizeText = item.type === 'folder' ? 
+                    `${(item.children || []).length} items` : 
+                    `${item.size} MB`;
+
+                const expandButton = item.type === 'folder' && 
+                    ((item.children !== null && item.children.length > 0) || item.itemCount > 0) ? 
+                    `<button class="expand-btn" onclick="chart.toggleNode('${item.id}')">+</button>` : '';
+
+                const description = item.description ? 
+                    `<div class="card-description">${item.description}</div>` : '';
+
+                let childrenHTML = '';
+                if (item.children && item.children.length > 0) {
+                    childrenHTML = `
+                        <div class="children" style="display: none;" id="children-${item.id}">
+                            ${this.renderNodes(item.children)}
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="node" data-id="${item.id}" data-name="${item.name.toLowerCase()}" data-type="${item.type}">
+                        <div class="${item.type}-card" onclick="chart.selectNode('${item.id}')" oncontextmenu="chart.showContextMenu(event, '${item.id}')">
+                            <div class="card-content">
+                                <span class="card-icon">${icon}</span>
+                                <div class="card-title">${item.name}</div>
+                                <div class="card-info">${sizeText} • ${item.modified}</div>
+                                ${description}
+                            </div>
+                            ${expandButton}
+                        </div>
+                        ${childrenHTML}
+                    </div>
+                `;
+            }
+
+            attachEventListeners() {
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.context-menu')) {
+                        this.hideContextMenu();
+                    }
+                });
+            }
+
+            toggleNode(nodeId) {
+                const nodeElement = document.querySelector(`[data-id="${nodeId}"]`);
+                const childrenDiv = document.getElementById(`children-${nodeId}`);
+                const expandBtn = nodeElement.querySelector('.expand-btn');
+                
+                if (!childrenDiv && !expandBtn) return;
+
+                const isExpanded = childrenDiv && childrenDiv.style.display !== 'none';
+                
+                if (isExpanded) {
+                    childrenDiv.style.display = 'none';
+                    expandBtn.innerHTML = '+';
+                    expandBtn.classList.remove('expanded');
+                    this.expandedNodes.delete(nodeId);
+                } else {
+                    if (childrenDiv) {
+                        childrenDiv.style.display = 'flex';
+                        expandBtn.innerHTML = '−';
+                        expandBtn.classList.remove('loading');
+                        expandBtn.classList.add('expanded');
+                        this.expandedNodes.add(nodeId);
+                    }
+                }
+            }
+
+            findNodeById(node, id) {
+                if (!node) return null;
+                if (node.id === id) return node;
+                if (node.children) {
+                    for (let child of node.children) {
+                        const found = this.findNodeById(child, id);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            }
+
+            selectNode(nodeId) {
+                document.querySelectorAll('.folder-card, .file-card').forEach(card => {
+                    card.style.border = '1px solid #e5e7eb';
+                    card.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
+                });
+
+                const nodeElement = document.querySelector(`[data-id="${nodeId}"]`);
+                const card = nodeElement.querySelector('.folder-card, .file-card');
+                card.style.border = '2px solid #10b981';
+                card.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.15)';
+                
+                this.selectedNode = this.findNodeById(this.folderStructure, nodeId);
+                this.updateBreadcrumb(this.selectedNode);
+            }
+
+            updateBreadcrumb(item) {
+                const breadcrumb = document.getElementById('breadcrumb');
+                if (item) {
+                    breadcrumb.innerHTML = `
+                        <a href="#" class="breadcrumb-item" onclick="chart.navigateToRoot()">📁 ${this.libraryName}</a>
+                        <span class="breadcrumb-separator">></span>
+                        <span class="breadcrumb-item">${item.name}</span>
+                    `;
+                }
+            }
+
+            showContextMenu(event, nodeId) {
+                event.preventDefault();
+                const contextMenu = document.getElementById('contextMenu');
+                contextMenu.style.display = 'block';
+                contextMenu.style.left = event.pageX + 'px';
+                contextMenu.style.top = event.pageY + 'px';
+                
+                this.selectedNode = this.findNodeById(this.folderStructure, nodeId);
+            }
+
+            hideContextMenu() {
+                document.getElementById('contextMenu').style.display = 'none';
+            }
+
+            openItem() {
+                if (this.selectedNode) {
+                    this.showNotification('Demo mode - would open: ' + this.selectedNode.name);
+                }
+                this.hideContextMenu();
+            }
+
+            copyLink() {
+                if (this.selectedNode) {
+                    const link = `Demo link for: ${this.selectedNode.name}`;
+                    navigator.clipboard.writeText(link).then(() => {
+                        this.showNotification('Link copied to clipboard!');
+                    });
+                }
+                this.hideContextMenu();
+            }
+
+            viewProperties() {
+                if (this.selectedNode) {
+                    const props = `
+Name: ${this.selectedNode.name}
+Type: ${this.selectedNode.type}
+${this.selectedNode.description ? `Description: ${this.selectedNode.description}` : ''}
+Size: ${this.selectedNode.size} MB
+Modified: ${this.selectedNode.modified}
+                    `.trim();
+                    alert(props);
+                }
+                this.hideContextMenu();
+            }
+
+            expandAll() {
+                document.querySelectorAll('.expand-btn:not(.expanded)').forEach(btn => {
+                    btn.click();
+                });
+            }
+
+            collapseAll() {
+                document.querySelectorAll('.expand-btn.expanded').forEach(btn => {
+                    btn.click();
+                });
+            }
+
+            search(query) {
+                const nodes = document.querySelectorAll('.node');
+                const searchTerm = query.toLowerCase();
+
+                nodes.forEach(node => {
+                    const name = node.getAttribute('data-name');
+                    const shouldShow = !query || name.includes(searchTerm);
+                    
+                    if (shouldShow) {
+                        node.classList.remove('hidden');
+                    } else {
+                        node.classList.add('hidden');
+                    }
+                });
+            }
+
+            async refresh() {
+                await this.init();
+            }
+
+            navigateToRoot() {
+                document.querySelectorAll('.folder-card, .file-card').forEach(card => {
+                    card.style.border = '1px solid #e5e7eb';
+                    card.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
+                });
+                
+                const breadcrumb = document.getElementById('breadcrumb');
+                breadcrumb.innerHTML = `<a href="#" class="breadcrumb-item" onclick="chart.navigateToRoot()">📁 ${this.libraryName}</a>`;
+            }
+
+            updateStats() {
+                const stats = this.calculateStats(this.folderStructure);
+                document.getElementById('totalFolders').textContent = stats.folderCount;
+                document.getElementById('totalFiles').textContent = stats.fileCount;
+                document.getElementById('totalSize').textContent = stats.totalSize;
+            }
+
+            calculateStats(node) {
+                let folderCount = 0;
+                let fileCount = 0;
+                let totalSize = 0;
+
+                const traverse = (item) => {
+                    if (!item) return;
+                    
+                    if (item.type === 'folder') {
+                        folderCount++;
+                        if (item.children) {
+                            item.children.forEach(traverse);
+                        }
+                    } else {
+                        fileCount++;
+                        totalSize += item.size || 0;
+                    }
+                };
+
+                if (node && node.children) {
+                    node.children.forEach(traverse);
+                }
+
+                return { folderCount, fileCount, totalSize: totalSize.toFixed(1) };
+            }
+
+            showNotification(message) {
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    setTimeout(() => {
+                        if (document.body.contains(notification)) {
+                            document.body.removeChild(notification);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
         }
 
-        function testChart() {
-            log('Test button clicked');
-            renderSimpleChart();
-        }
-
-        function showDebug() {
-            log('Browser: ' + navigator.userAgent);
-            log('Screen: ' + screen.width + 'x' + screen.height);
-            log('Time: ' + new Date().toString());
-        }
-
-        // Auto-start when page loads
+        // Initialize the chart
+        let chart;
         document.addEventListener('DOMContentLoaded', function() {
-            log('DOM loaded');
-            setTimeout(() => {
-                log('Auto-rendering chart...');
-                renderSimpleChart();
-            }, 500);
+            // CHANGE THIS TO YOUR SHAREPOINT LIBRARY NAME
+            chart = new SharePointLibraryChart('documentLibraryChart', 'Documents');
+            chart.init();
         });
 
-        // Error handling
-        window.addEventListener('error', function(e) {
-            log('ERROR: ' + e.message + ' at line ' + e.lineno);
-        });
-
-        log('Script loaded successfully');
+        // Global functions for button clicks
+        window.chart = chart;
     </script>
 </body>
 </html>
