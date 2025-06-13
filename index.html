@@ -110,7 +110,7 @@
         }
 
         .node.hidden {
-            display: none;
+            display: none !important;
         }
 
         .folder-card, .file-card {
@@ -737,7 +737,7 @@
                             <button class="control-btn" onclick="chart.expandAll()">📂 Expand All</button>
                             <button class="control-btn" onclick="chart.collapseAll()">📁 Collapse All</button>
                             <button class="control-btn" onclick="chart.refresh()">🔄 Refresh</button>
-                            <input type="text" class="search-box" placeholder="🔍 Search folders and files..." onkeyup="chart.search(this.value)">
+                            <input type="text" class="search-box" placeholder="🔍 Search folders and files..." onkeyup="window.chart.search(this.value)" oninput="window.chart.search(this.value)">
                         </div>
                     </div>
                     
@@ -948,21 +948,35 @@ Modified: ${this.selectedNode.modified}
                 });
             }
 
-            search(query) {
-                const nodes = document.querySelectorAll('.node');
-                const searchTerm = query.toLowerCase();
+search(query) {
+    const nodes = document.querySelectorAll('.node');
+    const searchTerm = query.toLowerCase().trim();
 
-                nodes.forEach(node => {
-                    const name = node.getAttribute('data-name');
-                    const shouldShow = !query || name.includes(searchTerm);
-                    
-                    if (shouldShow) {
-                        node.classList.remove('hidden');
-                    } else {
-                        node.classList.add('hidden');
-                    }
-                });
-            }
+    console.log('Searching for:', searchTerm); // Debug log
+
+    nodes.forEach(node => {
+        const name = node.getAttribute('data-name') || '';
+        const cardTitle = node.querySelector('.card-title')?.textContent.toLowerCase() || '';
+        
+        // Search in both data-name and visible title
+        const matchesName = name.includes(searchTerm);
+        const matchesTitle = cardTitle.includes(searchTerm);
+        const shouldShow = !searchTerm || matchesName || matchesTitle;
+        
+        // Use display style instead of hidden class
+        if (shouldShow) {
+            node.style.display = 'flex';
+            node.classList.remove('hidden');
+        } else {
+            node.style.display = 'none';
+            node.classList.add('hidden');
+        }
+    });
+
+    // Log results for debugging
+    const visibleNodes = document.querySelectorAll('.node:not(.hidden)');
+    console.log(`Found ${visibleNodes.length} matching items`);
+}
 
             async refresh() {
                 await this.init();
