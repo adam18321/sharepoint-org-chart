@@ -952,26 +952,96 @@ search(query) {
     const nodes = document.querySelectorAll('.node');
     const searchTerm = query.toLowerCase().trim();
 
-    console.log('Searching for:', searchTerm); // Debug log
+    console.log('Searching for:', searchTerm);
 
+    // First, hide all nodes
+    nodes.forEach(node => {
+        node.style.display = 'none';
+        node.classList.add('hidden');
+    });
+
+    if (!searchTerm) {
+        // If no search term, show all nodes
+        nodes.forEach(node => {
+            node.style.display = 'flex';
+            node.classList.remove('hidden');
+        });
+        console.log('Search cleared - showing all items');
+        return;
+    }
+
+    const matchingNodes = [];
+
+    // Find all matching nodes
     nodes.forEach(node => {
         const name = node.getAttribute('data-name') || '';
         const cardTitle = node.querySelector('.card-title')?.textContent.toLowerCase() || '';
         
-        // Search in both data-name and visible title
         const matchesName = name.includes(searchTerm);
         const matchesTitle = cardTitle.includes(searchTerm);
-        const shouldShow = !searchTerm || matchesName || matchesTitle;
         
-        // Use display style instead of hidden class
-        if (shouldShow) {
-            node.style.display = 'flex';
-            node.classList.remove('hidden');
-        } else {
-            node.style.display = 'none';
-            node.classList.add('hidden');
+        if (matchesName || matchesTitle) {
+            matchingNodes.push(node);
         }
     });
+
+    // Show matching nodes and their parent path
+    matchingNodes.forEach(matchingNode => {
+        // Show the matching node
+        this.showNodeAndParents(matchingNode);
+        
+        // Auto-expand parent folders to show the match
+        this.expandParentsOf(matchingNode);
+    });
+
+    console.log(`Found ${matchingNodes.length} matching items`);
+}
+
+// Helper function to show a node and all its parents
+showNodeAndParents(node) {
+    let currentNode = node;
+    
+    while (currentNode) {
+        currentNode.style.display = 'flex';
+        currentNode.classList.remove('hidden');
+        
+        // Find the parent node by looking for the nearest ancestor .node
+        const parentChildren = currentNode.closest('.children');
+        if (parentChildren) {
+            currentNode = parentChildren.closest('.node');
+        } else {
+            currentNode = null;
+        }
+    }
+}
+
+// Helper function to expand parent folders
+expandParentsOf(node) {
+    let currentNode = node;
+    
+    while (currentNode) {
+        const parentChildren = currentNode.closest('.children');
+        if (parentChildren) {
+            const parentNode = parentChildren.closest('.node');
+            const expandBtn = parentNode.querySelector('.expand-btn');
+            
+            // Expand the parent if it's not already expanded
+            if (expandBtn && !expandBtn.classList.contains('expanded')) {
+                // Show the children container
+                parentChildren.style.display = 'flex';
+                expandBtn.innerHTML = '−';
+                expandBtn.classList.add('expanded');
+                
+                const folderId = parentNode.getAttribute('data-id');
+                this.expandedNodes.add(folderId);
+            }
+            
+            currentNode = parentNode;
+        } else {
+            currentNode = null;
+        }
+    }
+}
 
     // Log results for debugging
     const visibleNodes = document.querySelectorAll('.node:not(.hidden)');
