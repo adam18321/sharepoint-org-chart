@@ -954,98 +954,68 @@ search(query) {
 
     console.log('Searching for:', searchTerm);
 
-    // First, hide all nodes
+    // Clear previous search - show all nodes first
+    nodes.forEach(node => {
+        node.style.display = 'flex';
+        node.classList.remove('hidden');
+    });
+
+    // If no search term, show everything
+    if (!searchTerm) {
+        console.log('Search cleared - showing all items');
+        return;
+    }
+
+    // Find matches
+    const matchingNodes = [];
+    nodes.forEach(node => {
+        const name = node.getAttribute('data-name') || '';
+        const cardTitle = node.querySelector('.card-title');
+        const titleText = cardTitle ? cardTitle.textContent.toLowerCase() : '';
+        
+        if (name.includes(searchTerm) || titleText.includes(searchTerm)) {
+            matchingNodes.push(node);
+        }
+    });
+
+    // Hide all nodes first
     nodes.forEach(node => {
         node.style.display = 'none';
         node.classList.add('hidden');
     });
 
-    if (!searchTerm) {
-        // If no search term, show all nodes
-        nodes.forEach(node => {
-            node.style.display = 'flex';
-            node.classList.remove('hidden');
-        });
-        console.log('Search cleared - showing all items');
-        return;
-    }
-
-    const matchingNodes = [];
-
-    // Find all matching nodes
-    nodes.forEach(node => {
-        const name = node.getAttribute('data-name') || '';
-        const cardTitle = node.querySelector('.card-title')?.textContent.toLowerCase() || '';
-        
-        const matchesName = name.includes(searchTerm);
-        const matchesTitle = cardTitle.includes(searchTerm);
-        
-        if (matchesName || matchesTitle) {
-            matchingNodes.push(node);
-        }
-    });
-
-    // Show matching nodes and their parent path
+    // Show matching nodes and their parents
     matchingNodes.forEach(matchingNode => {
-        // Show the matching node
-        this.showNodeAndParents(matchingNode);
-        
-        // Auto-expand parent folders to show the match
-        this.expandParentsOf(matchingNode);
+        this.showNodePath(matchingNode);
     });
 
-    console.log(`Found ${matchingNodes.length} matching items`);
+    console.log('Found ' + matchingNodes.length + ' matching items');
 }
 
-// Helper function to show a node and all its parents
-showNodeAndParents(node) {
-    let currentNode = node;
+showNodePath(targetNode) {
+    // Show the target node
+    targetNode.style.display = 'flex';
+    targetNode.classList.remove('hidden');
     
-    while (currentNode) {
-        currentNode.style.display = 'flex';
-        currentNode.classList.remove('hidden');
-        
-        // Find the parent node by looking for the nearest ancestor .node
-        const parentChildren = currentNode.closest('.children');
-        if (parentChildren) {
-            currentNode = parentChildren.closest('.node');
-        } else {
-            currentNode = null;
-        }
-    }
-}
-
-// Helper function to expand parent folders
-expandParentsOf(node) {
-    let currentNode = node;
-    
-    while (currentNode) {
-        const parentChildren = currentNode.closest('.children');
-        if (parentChildren) {
-            const parentNode = parentChildren.closest('.node');
-            const expandBtn = parentNode.querySelector('.expand-btn');
+    // Show all parent nodes up to root
+    let currentElement = targetNode.parentElement;
+    while (currentElement) {
+        if (currentElement.classList && currentElement.classList.contains('node')) {
+            currentElement.style.display = 'flex';
+            currentElement.classList.remove('hidden');
             
-            // Expand the parent if it's not already expanded
-            if (expandBtn && !expandBtn.classList.contains('expanded')) {
-                // Show the children container
-                parentChildren.style.display = 'flex';
+            // Auto-expand this parent folder
+            const expandBtn = currentElement.querySelector('.expand-btn');
+            const childrenDiv = currentElement.querySelector('.children');
+            
+            if (expandBtn && childrenDiv && !expandBtn.classList.contains('expanded')) {
+                childrenDiv.style.display = 'flex';
                 expandBtn.innerHTML = '−';
                 expandBtn.classList.add('expanded');
-                
-                const folderId = parentNode.getAttribute('data-id');
-                this.expandedNodes.add(folderId);
             }
-            
-            currentNode = parentNode;
-        } else {
-            currentNode = null;
         }
+        currentElement = currentElement.parentElement;
     }
-}
-
-    // Log results for debugging
-    const visibleNodes = document.querySelectorAll('.node:not(.hidden)');
-    console.log(`Found ${visibleNodes.length} matching items`);
 }
 
             async refresh() {
