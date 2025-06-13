@@ -881,16 +881,15 @@
             }
 
             updateBreadcrumb(item) {
-                const breadcrumb = document.getElementById('breadcrumb');
-                if (item) {
-                    breadcrumb.innerHTML = `
-                        <a href="#" class="breadcrumb-item" onclick="chart.navigateToRoot()">📁 ${this.libraryName}</a>
-                        <span class="breadcrumb-separator">></span>
-                        <span class="breadcrumb-item">${item.name}</span>
-                    `;
-                }
-            }
-
+    const breadcrumb = document.getElementById('breadcrumb');
+    if (breadcrumb && item) {
+        breadcrumb.innerHTML = `
+            <a href="#" class="breadcrumb-item" onclick="chart.navigateToRoot()">📁 ${this.libraryName}</a>
+            <span class="breadcrumb-separator">></span>
+            <span class="breadcrumb-item">${item.name}</span>
+        `;
+    }
+}
             showContextMenu(event, nodeId) {
                 event.preventDefault();
                 const contextMenu = document.getElementById('contextMenu');
@@ -902,8 +901,11 @@
             }
 
             hideContextMenu() {
-                document.getElementById('contextMenu').style.display = 'none';
-            }
+    const contextMenu = document.getElementById('contextMenu');
+    if (contextMenu) {
+        contextMenu.style.display = 'none';
+    }
+}
 
             openItem() {
                 if (this.selectedNode) {
