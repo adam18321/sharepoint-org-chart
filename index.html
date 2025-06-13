@@ -737,7 +737,7 @@
                             <button class="control-btn" onclick="chart.expandAll()">📂 Expand All</button>
                             <button class="control-btn" onclick="chart.collapseAll()">📁 Collapse All</button>
                             <button class="control-btn" onclick="chart.refresh()">🔄 Refresh</button>
-                            <input type="text" class="search-box" placeholder="🔍 Search folders and files..." onkeyup="window.chart.search(this.value)" oninput="window.chart.search(this.value)">
+                            <input type="text" class="search-box" placeholder="🔍 Search folders and files..." onkeyup="window.chart && window.chart.search(this.value)" oninput="window.chart && window.chart.search(this.value)">
                         </div>
                     </div>
                     
@@ -1048,15 +1048,16 @@ search(query) {
         }
 
         // Initialize the chart
-        let chart;
-        document.addEventListener('DOMContentLoaded', function() {
-            // CHANGE THIS TO YOUR SHAREPOINT LIBRARY NAME
-            chart = new SharePointLibraryChart('documentLibraryChart', 'Documents');
-            chart.init();
-        });
-
-        // Global functions for button clicks
-        window.chart = chart;
+let chart;
+document.addEventListener('DOMContentLoaded', function() {
+    // CHANGE THIS TO YOUR SHAREPOINT LIBRARY NAME
+    chart = new SharePointLibraryChart('documentLibraryChart', 'Documents');
+    
+    // Make chart globally accessible AFTER it's created
+    window.chart = chart;
+    
+    chart.init();
+});
     </script>
 </body>
 </html>
